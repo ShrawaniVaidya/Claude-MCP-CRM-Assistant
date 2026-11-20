@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lead Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a26; --surface3:#21212e;
+  --border:#2a2a40; --accent:#7c5cfc; --accent2:#fc5c7d;
+  --hot:#ff4d6d; --warm:#ffa94d; --cold:#4dabf7; --green:#51cf66;
+  --text:#e8e8f0; --muted:#6b6b8a; --card-shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 10%,rgba(124,92,252,0.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(252,92,125,0.06) 0%,transparent 50%);pointer-events:none;z-index:0;}
+
+/* Header */
+header{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(10,10,15,0.85);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.logo h1{font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;}
+.logo span{color:var(--accent);}
+.db-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:0.72rem;font-family:'Space Mono',monospace;color:var(--muted);}
+.db-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.db-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* Main */
+main{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:28px;}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad,linear-gradient(90deg,var(--accent),var(--accent2)));}
+.stat-card.hot::after{--grad:linear-gradient(90deg,var(--hot),#ff8c55);}
+.stat-card.warm::after{--grad:linear-gradient(90deg,var(--warm),#ffd43b);}
+.stat-card.cold::after{--grad:linear-gradient(90deg,var(--cold),#74c0fc);}
+.stat-card.green::after{--grad:linear-gradient(90deg,var(--green),#a9e34b);}
+.stat-card.purple::after{--grad:linear-gradient(90deg,#7c5cfc,#fc5c7d);}
+.stat-label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:'Space Mono',monospace;margin-bottom:8px;}
+.stat-value{font-size:1.9rem;font-weight:800;line-height:1;}
+.stat-sub{font-size:0.72rem;color:var(--muted);margin-top:4px;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:12px;width:fit-content;margin-bottom:20px;}
+.tab{padding:8px 20px;border-radius:9px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s;color:var(--muted);}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+
+/* Filters */
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 13px;color:var(--text);font-family:'Syne',sans-serif;font-size:0.83rem;outline:none;transition:border-color 0.2s;}
+.filter-input:focus{border-color:var(--accent);}
+.filter-input::placeholder{color:var(--muted);}
+select.filter-input option{background:var(--surface2);}
+
+/* Table */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:12px 14px;text-align:left;font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:'Space Mono',monospace;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(42,42,64,0.5);cursor:pointer;transition:background 0.15s;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr:last-child{border:none;}
+td{padding:11px 14px;font-size:0.83rem;}
+.lead-id{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);}
+.phone{font-family:'Space Mono',monospace;font-size:0.78rem;}
+.score-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;font-size:0.75rem;font-weight:700;font-family:'Space Mono',monospace;}
+.score-badge.hot{background:rgba(255,77,109,0.15);color:var(--hot);}
+.score-badge.warm{background:rgba(255,169,77,0.15);color:var(--warm);}
+.score-badge.cold{background:rgba(77,171,247,0.15);color:var(--cold);}
+.status-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;font-family:'Space Mono',monospace;white-space:nowrap;}
+.status-badge.new{background:rgba(124,92,252,0.15);color:#a78bfa;}
+.status-badge.in_progress{background:rgba(255,169,77,0.15);color:var(--warm);}
+.status-badge.converted{background:rgba(81,207,102,0.15);color:var(--green);}
+.status-badge.lost{background:rgba(255,77,109,0.15);color:var(--hot);}
+.tag-chip{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:0.65rem;font-weight:600;background:rgba(124,92,252,0.15);color:#a78bfa;border:1px solid rgba(124,92,252,0.3);margin:1px;}
+.mini-bar{display:flex;align-items:center;gap:7px;}
+.mini-bar-track{flex:1;height:4px;background:var(--border);border-radius:2px;min-width:50px;}
+.mini-bar-fill{height:100%;border-radius:2px;}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--border);}
+.pagination-info{font-size:0.78rem;color:var(--muted);font-family:'Space Mono',monospace;}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:#6a4de8;}
+.btn.danger{background:rgba(255,77,109,0.1);border-color:var(--hot);color:var(--hot);}
+.btn.sm{padding:4px 10px;font-size:0.74rem;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:860px;box-shadow:0 24px 80px rgba(0,0,0,0.6);animation:slideUp 0.25s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;}
+.modal-title{font-size:1.2rem;font-weight:800;}
+.modal-sub{color:var(--muted);font-size:0.8rem;margin-top:2px;font-family:'Space Mono',monospace;}
+.modal-close{width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:22px 26px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+.info-row{background:var(--surface2);border-radius:10px;padding:12px 14px;}
+.info-row label{font-size:0.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-family:'Space Mono',monospace;}
+.info-row .val{font-size:1rem;font-weight:700;margin-top:2px;}
+.score-circle-wrap{text-align:center;padding:18px;background:var(--surface2);border-radius:14px;margin-bottom:16px;}
+.score-circle{width:100px;height:100px;margin:0 auto 10px;position:relative;}
+.score-circle svg{transform:rotate(-90deg);}
+.score-number{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-number .num{font-size:1.8rem;font-weight:800;line-height:1;}
+.score-number .lbl{font-size:0.6rem;color:var(--muted);font-family:'Space Mono',monospace;}
+.form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.form-row label{font-size:0.72rem;color:var(--muted);}
+.form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:0.83rem;outline:none;width:100%;transition:border-color 0.2s;}
+.form-input:focus{border-color:var(--accent);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.call-item{background:var(--surface2);border-radius:9px;padding:9px 12px;display:flex;align-items:center;gap:10px;font-size:0.78rem;margin-bottom:5px;}
+.call-status{padding:2px 8px;border-radius:5px;font-size:0.66rem;font-weight:700;font-family:'Space Mono',monospace;white-space:nowrap;}
+.call-status.completed{background:rgba(81,207,102,0.15);color:var(--green);}
+.call-status.no-response{background:rgba(255,77,109,0.15);color:var(--hot);}
+.call-status.answered{background:rgba(77,171,247,0.15);color:var(--cold);}
+.call-time{color:var(--muted);font-family:'Space Mono',monospace;flex:1;}
+.call-dur{font-family:'Space Mono',monospace;font-weight:700;}
+.note-item{background:var(--surface2);border-radius:9px;padding:10px 13px;margin-bottom:7px;font-size:0.82rem;}
+.note-meta{font-size:0.68rem;color:var(--muted);margin-bottom:3px;font-family:'Space Mono',monospace;display:flex;justify-content:space-between;}
+.scroll-list{max-height:240px;overflow-y:auto;}
+.agent-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;}
+.agent-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.agent-ava{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;}
+.agent-name-text{font-weight:700;font-size:1rem;}
+.agent-stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem;}
+.agent-stat-row:last-child{border:none;}
+.agent-stat-row .label{color:var(--muted);}
+.agent-stat-row .value{font-weight:700;}
+.target-bar{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;}
+.target-label{font-size:0.7rem;color:var(--muted);margin-bottom:5px;font-family:'Space Mono',monospace;}
+.target-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px;}
+.target-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.5s;}
+.target-fill.over{background:linear-gradient(90deg,var(--green),#a9e34b);}
+.target-pct{font-size:0.7rem;font-family:'Space Mono',monospace;text-align:right;}
+.ai-panel{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.ai-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2);}
+.ai-header-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.ai-messages{min-height:260px;max-height:400px;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;}
+.msg{max-width:85%;padding:11px 15px;border-radius:13px;font-size:0.83rem;line-height:1.6;}
+.msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.msg.ai{background:var(--surface2);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:3px;white-space:pre-wrap;}
+.msg.thinking::after{content:'';animation:dots 1.2s steps(3,end) infinite;}
+@keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...';}  }
+.ai-quick{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 12px;}
+.quick-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.73rem;cursor:pointer;transition:all 0.2s;font-family:'Syne',sans-serif;}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ai-input-row{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);}
+.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:9px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:0.83rem;outline:none;resize:none;transition:border-color 0.2s;}
+.ai-input:focus{border-color:var(--accent);}
+.ai-send{width:40px;height:40px;border-radius:11px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.ai-send:disabled{opacity:0.4;cursor:not-allowed;}
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:0.83rem;box-shadow:var(--card-shadow);transform:translateY(20px);opacity:0;transition:all 0.25s;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--hot);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:1.05rem;font-weight:700;}
+.api-key-wrap{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 12px;}
+.api-key-wrap label{font-size:0.68rem;color:var(--muted);font-family:'Space Mono',monospace;white-space:nowrap;}
+.api-key-wrap input{background:transparent;border:none;outline:none;color:var(--text);font-family:'Space Mono',monospace;font-size:0.76rem;width:220px;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background 0.3s;}
+.status-dot.active{background:var(--green);box-shadow:0 0 6px var(--green);}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.target-set-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding:12px;background:var(--surface2);border-radius:10px;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎯</div>
+    <h1>Lead<span>IQ</span></h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="db-badge"><div class="db-dot" id="dbDot"></div><span id="dbStatus">Connecting...</span></div>
+    <div class="api-key-wrap">
+      <label>CLAUDE API KEY</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off"/>
+      <div class="status-dot" id="apiDot"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('leads')">📋 Leads</div>
+    <div class="tab" onclick="switchTab('agents')">👥 Agents</div>
+    <div class="tab" onclick="switchTab('ai')">🤖 AI Analyst</div>
+  </div>
+
+  <!-- LEADS TAB -->
+  <div id="tab-leads">
+    <div class="filters">
+      <input class="filter-input" type="text" id="searchInput" placeholder="🔍 Search lead ID, phone, agent..." oninput="filterLeads()"/>
+      <select class="filter-input" id="agentFilter" onchange="filterLeads()"><option value="">All Agents</option></select>
+      <select class="filter-input" id="qualityFilter" onchange="filterLeads()">
+        <option value="">All Quality</option>
+        <option value="HOT">🔥 HOT</option>
+        <option value="WARM">🌡️ WARM</option>
+        <option value="COLD">❄️ COLD</option>
+      </select>
+      <select class="filter-input" id="statusFilter" onchange="filterLeads()">
+        <option value="">All Status</option>
+        <option value="new">🆕 New</option>
+        <option value="in_progress">⚡ In Progress</option>
+        <option value="converted">✅ Converted</option>
+        <option value="lost">❌ Lost</option>
+      </select>
+      <select class="filter-input" id="sortSelect" onchange="filterLeads()">
+        <option value="score">Sort: Score</option>
+        <option value="total_calls">Sort: Total Calls</option>
+        <option value="completed_calls">Sort: Completed</option>
+        <option value="days_since_last_call">Sort: Days Since</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Lead ID</th><th>Phone</th><th>Agent</th>
+          <th>Status</th><th>Tags</th>
+          <th>Calls</th><th>Completed</th><th>Connect%</th>
+          <th>Days Since</th><th>Score</th>
+        </tr></thead>
+        <tbody id="leadsTableBody"></tbody>
+      </table>
+      <div class="pagination">
+        <div class="pagination-info" id="paginationInfo"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="prevBtn" onclick="changePage(-1)">← Prev</button>
+          <button class="btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENTS TAB -->
+  <div id="tab-agents" style="display:none;">
+    <div class="section-header">
+      <div class="section-title">Agent Performance</div>
+      <button class="btn primary" onclick="openTargetModal()">🎯 Set Targets</button>
+    </div>
+    <div class="agent-cards" id="agentCards"></div>
+  </div>
+
+  <!-- AI TAB -->
+  <div id="tab-ai" style="display:none;">
+    <div class="ai-panel">
+      <div class="ai-header">
+        <div class="ai-header-icon">🤖</div>
+        <div><h3 style="font-size:0.95rem;font-weight:700;">Claude AI Analyst</h3><p style="font-size:0.75rem;color:var(--muted);">Connected to your MySQL database</p></div>
+      </div>
+      <div class="ai-quick">
+        <button class="quick-btn" onclick="quickAsk('Summarize the overall lead quality and key insights')">📈 Summary</button>
+        <button class="quick-btn" onclick="quickAsk('Which leads should I prioritize calling today?')">🎯 Prioritize</button>
+        <button class="quick-btn" onclick="quickAsk('Which agents are meeting their targets this month?')">👥 Targets</button>
+        <button class="quick-btn" onclick="quickAsk('Show me all converted leads and what they have in common')">✅ Converted</button>
+        <button class="quick-btn" onclick="quickAsk('Give me a follow-up strategy for cold leads')">🧊 Cold Strategy</button>
+      </div>
+      <div class="ai-messages" id="aiMessages">
+        <div class="msg ai">👋 Hello! I'm connected directly to your MySQL database. Ask me anything about your leads, agents, notes, callbacks, or performance. I can also set lead status, add tags, and schedule callbacks for you.</div>
+      </div>
+      <div class="ai-input-row">
+        <textarea class="ai-input" id="aiInput" rows="1" placeholder="Ask anything..." onkeydown="aiKeyDown(event)"></textarea>
+        <button class="ai-send" id="aiSendBtn" onclick="sendAiMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Lead Detail Modal -->
+<div class="modal-overlay" id="leadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modalTitle">Lead Details</div><div class="modal-sub" id="modalSub"></div></div>
+      <button class="modal-close" onclick="closeModal('leadModal')">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Set Targets Modal -->
+<div class="modal-overlay" id="targetModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div><div class="modal-title">🎯 Set Monthly Targets</div><div class="modal-sub" id="targetMonthLabel"></div></div>
+      <button class="modal-close" onclick="closeModal('targetModal')">✕</button>
+    </div>
+    <div class="modal-body" id="targetModalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let allLeads = [], filteredLeads = [], currentPage = 1;
+const PER_PAGE = 50;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts={}) {
+  const r = await fetch(API+path, opts);
+  if (!r.ok) { const e=await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||r.statusText); }
+  return r.json();
+}
+function fmtSec(s){if(!s)return '0s';s=parseInt(s);const m=Math.floor(s/60),sec=s%60,h=Math.floor(m/60),mm=m%60;if(h)return`${h}h ${mm}m`;if(mm)return`${mm}m ${sec}s`;return`${sec}s`;}
+function qualBadge(q,sc){const cls=q.toLowerCase();const e=q==='HOT'?'🔥':q==='WARM'?'🌡️':'❄️';return`<span class="score-badge ${cls}">${e} ${sc}</span>`;}
+function statusBadge(s){const labels={new:'🆕 New',in_progress:'⚡ In Progress',converted:'✅ Converted',lost:'❌ Lost'};return`<span class="status-badge ${s}">${labels[s]||s}</span>`;}
+function scColor(s){return s>=80?'var(--hot)':s>=50?'var(--warm)':'var(--cold)';}
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type}`;setTimeout(()=>t.classList.remove('show'),3500);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+// ── DB health ─────────────────────────────────────────────────────────────────
+async function checkHealth(){
+  try{const d=await apiFetch('/api/health');document.getElementById('dbDot').classList.add('live');document.getElementById('dbStatus').textContent=`MySQL · ${d.records} records`;}
+  catch{document.getElementById('dbStatus').textContent='Disconnected';}
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const s=await apiFetch('/api/stats');
+    document.getElementById('statsGrid').innerHTML=`
+      <div class="stat-card hot"><div class="stat-label">🔥 Hot Leads</div><div class="stat-value" style="color:var(--hot)">${s.hot_leads}</div><div class="stat-sub">Score ≥ 80</div></div>
+      <div class="stat-card warm"><div class="stat-label">🌡️ Warm Leads</div><div class="stat-value" style="color:var(--warm)">${s.warm_leads}</div><div class="stat-sub">Score 50–79</div></div>
+      <div class="stat-card cold"><div class="stat-label">❄️ Cold Leads</div><div class="stat-value" style="color:var(--cold)">${s.cold_leads}</div><div class="stat-sub">Score &lt; 50</div></div>
+      <div class="stat-card purple"><div class="stat-label">✅ Converted</div><div class="stat-value" style="color:var(--green)">${s.converted}</div><div class="stat-sub">Marked converted</div></div>
+      <div class="stat-card"><div class="stat-label">📞 Total Records</div><div class="stat-value">${s.total_records}</div><div class="stat-sub">${s.unique_leads} unique leads</div></div>
+      <div class="stat-card green"><div class="stat-label">✅ Completed</div><div class="stat-value" style="color:var(--green)">${s.completed}</div><div class="stat-sub">${s.connect_rate}% connect rate</div></div>
+      <div class="stat-card"><div class="stat-label">⏱️ Talk Time</div><div class="stat-value">${s.total_talk_min}</div><div class="stat-sub">minutes total</div></div>
+      <div class="stat-card"><div class="stat-label">📝 Notes</div><div class="stat-value">${s.total_notes}</div><div class="stat-sub">📅 ${s.todays_callbacks} callbacks today</div></div>
+    `;
+  }catch(e){showToast('Error loading stats: '+e.message,'error');}
+}
+
+// ── Leads ─────────────────────────────────────────────────────────────────────
+async function loadLeads(){
+  try{
+    const search  = document.getElementById('searchInput').value;
+    const quality = document.getElementById('qualityFilter').value;
+    const agent   = document.getElementById('agentFilter').value;
+    const status  = document.getElementById('statusFilter').value;
+    const sortBy  = document.getElementById('sortSelect').value;
+    let url=`/api/leads?page=${currentPage}&per_page=${PER_PAGE}&sort_by=${sortBy}&order=desc`;
+    if(search)  url+=`&search=${encodeURIComponent(search)}`;
+    if(quality) url+=`&quality=${quality}`;
+    if(agent)   url+=`&agent=${encodeURIComponent(agent)}`;
+    if(status)  url+=`&lead_status=${status}`;
+    const data = await apiFetch(url);
+    allLeads = data.leads;
+    renderTable(data);
+    // populate agent filter once
+    if(document.getElementById('agentFilter').options.length<=1){
+      const ag=await apiFetch('/api/agents');
+      const sel=document.getElementById('agentFilter');
+      ag.agents.forEach(a=>{const o=document.createElement('option');o.value=a.name;o.textContent=a.name;sel.appendChild(o);});
+    }
+  }catch(e){showToast('Error: '+e.message,'error');}
+}
+
+function renderTable(data){
+  const tbody=document.getElementById('leadsTableBody');
+  const total=data.total;
+  const totalPages=data.total_pages;
+  document.getElementById('paginationInfo').textContent=`Showing ${(currentPage-1)*PER_PAGE+1}–${Math.min(currentPage*PER_PAGE,total)} of ${total}`;
+  document.getElementById('prevBtn').disabled=currentPage<=1;
+  document.getElementById('nextBtn').disabled=currentPage>=totalPages;
+  tbody.innerHTML=data.leads.map(l=>{
+    const cr=l.total_calls?Math.round((l.completed_calls+l.answered_calls)/l.total_calls*100):0;
+    const crColor=cr>60?'var(--green)':cr>30?'var(--warm)':'var(--hot)';
+    const tagsHtml=l.tags&&l.tags.length?l.tags.map(t=>`<span class="tag-chip">${t}</span>`).join(''):'<span style="color:var(--muted);font-size:0.7rem">—</span>';
+    return`<tr onclick="openLead(${l.lead_id})">
+      <td><span class="lead-id">#${l.lead_id}</span></td>
+      <td><span class="phone">${l.phone}</span></td>
+      <td>${l.agent_name}</td>
+      <td>${statusBadge(l.lead_status)}</td>
+      <td><div class="tags-wrap">${tagsHtml}</div></td>
+      <td>${l.total_calls}</td>
+      <td style="color:var(--green)">${l.completed_calls}</td>
+      <td><div class="mini-bar"><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${cr}%;background:${crColor}"></div></div><span style="font-size:0.72rem;font-family:'Space Mono',monospace;color:${crColor}">${cr}%</span></div></td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.75rem;color:${l.days_since_last_call>15?'var(--warm)':'var(--muted)'}">${l.days_since_last_call}d</td>
+      <td>${qualBadge(l.quality,l.score)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLeads(){currentPage=1;loadLeads();}
+function changePage(dir){currentPage+=dir;loadLeads();}
+
+// ── Lead Modal ────────────────────────────────────────────────────────────────
+async function openLead(id){
+  try{
+    const l=await apiFetch(`/api/lead/${id}`);
+    document.getElementById('modalTitle').textContent=`Lead #${l.lead_id}`;
+    document.getElementById('modalSub').textContent=`${l.phone} · ${l.agent_name}`;
+    const sc=l.score,col=scColor(sc),r=44,circ=2*Math.PI*r,dash=circ*(1-sc/100);
+    let body=`
+    <div class="score-circle-wrap">
+      <div class="score-circle"><svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--border)" stroke-width="7"/>
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="7" stroke-dasharray="${circ}" stroke-dashoffset="${dash}" stroke-linecap="round"/>
+      </svg><div class="score-number"><div class="num" style="color:${col}">${sc}</div><div class="lbl">SCORE</div></div></div>
+      <div style="font-size:1rem;font-weight:700">${l.emoji} ${l.quality}</div>
+    </div>
+    <!-- Status & Tags -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="form-row"><label>Lead Status</label>
+          <select class="form-input" id="leadStatusSel" onchange="updateStatus(${l.lead_id})">
+            ${['new','in_progress','converted','lost'].map(s=>`<option value="${s}" ${l.lead_status===s?'selected':''}>${{new:'🆕 New',in_progress:'⚡ In Progress',converted:'✅ Converted',lost:'❌ Lost'}[s]}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div class="form-row"><label>Tags (comma separated)</label>
+          <input class="form-input" id="leadTagsInput" value="${l.tags.join(', ')}" placeholder="interested, callback, vip..."/>
+        </div>
+        <button class="btn sm" onclick="updateTags(${l.lead_id})" style="margin-top:4px;">💾 Save Tags</button>
+      </div>
+    </div>
+    <div class="modal-grid">
+      <div class="info-row"><label>Phone</label><div class="val" style="font-family:'Space Mono',monospace">${l.phone}</div></div>
+      <div class="info-row"><label>Agent</label><div class="val">${l.agent_name}</div></div>
+      <div class="info-row"><label>Total Calls</label><div class="val">${l.total_calls}</div></div>
+      <div class="info-row"><label>Completed</label><div class="val" style="color:var(--green)">${l.completed_calls}</div></div>
+      <div class="info-row"><label>No Response</label><div class="val" style="color:var(--hot)">${l.no_response_calls}</div></div>
+      <div class="info-row"><label>Avg Duration</label><div class="val">${fmtSec(l.avg_duration_sec)}</div></div>
+      <div class="info-row"><label>First Call</label><div class="val" style="font-size:0.82rem">${l.first_call_date}</div></div>
+      <div class="info-row"><label>Last Call</label><div class="val" style="font-size:0.82rem">${l.last_call_date}</div></div>
+    </div>
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:14px;">
+      <div class="tab active" id="ltab-calls-btn" onclick="showLeadTab('calls')">📞 Calls (${l.calls.length})</div>
+      <div class="tab" id="ltab-notes-btn" onclick="showLeadTab('notes')">📝 Notes (${l.notes.length})</div>
+      <div class="tab" id="ltab-cb-btn" onclick="showLeadTab('callbacks')">📅 Callbacks (${l.callbacks.length})</div>
+    </div>
+    <!-- Calls -->
+    <div id="lead-tab-calls" class="scroll-list">
+      ${l.calls.map(c=>{const st=String(c.status||'').toLowerCase();const cls=st==='completed'?'completed':st.includes('no response')?'no-response':'answered';return`<div class="call-item"><span class="call-status ${cls}">${c.status}</span><span class="call-time">${String(c.start_time).slice(0,16)}</span><span class="call-dur">${c.call_duration}</span><span style="font-size:0.72rem;color:var(--muted)">${c.call_type||''}</span></div>`;}).join('')||'<div style="color:var(--muted);text-align:center;padding:20px">No calls</div>'}
+    </div>
+    <!-- Notes -->
+    <div id="lead-tab-notes" style="display:none;">
+      <div style="margin-bottom:12px;">
+        <div class="form-row"><label>Add Note</label><input class="form-input" id="newNoteText" placeholder="Type note..."/></div>
+        <button class="btn primary sm" onclick="saveNote(${l.lead_id})">💾 Save</button>
+      </div>
+      <div class="scroll-list" id="notesList">
+        ${l.notes.map(n=>`<div class="note-item"><div class="note-meta"><span>${n.created_at.slice(0,16)} ${n.agent_name?'· '+n.agent_name:''}</span><button class="btn sm danger" onclick="delNote(${n.id},${l.lead_id})">🗑</button></div><div>${n.note_text}</div></div>`).join('')||'<div style="color:var(--muted);text-align:center;padding:20px">No notes yet</div>'}
+      </div>
+    </div>
+    <!-- Callbacks -->
+    <div id="lead-tab-callbacks" style="display:none;">
+      <div style="margin-bottom:12px;">
+        <div class="form-grid">
+          <div class="form-row"><label>Date *</label><input class="form-input" id="newCbDate" type="date"/></div>
+          <div class="form-row"><label>Time</label><input class="form-input" id="newCbTime" type="time" value="09:00"/></div>
+        </div>
+        <div class="form-row"><label>Reason</label><input class="form-input" id="newCbReason" placeholder="Reason..."/></div>
+        <button class="btn primary sm" onclick="saveCb(${l.lead_id})">📅 Schedule</button>
+      </div>
+      <div class="scroll-list">
+        ${l.callbacks.map(c=>`<div class="call-item"><span class="call-status ${c.status==='done'?'completed':'answered'}">${c.status}</span><span class="call-time">${c.scheduled_date} ${c.scheduled_time}</span><span style="flex:1;font-size:0.75rem;color:var(--muted)">${c.reason||''}</span>${c.status==='pending'?`<button class="btn sm" onclick="markDone(${c.id},${l.lead_id})">✓</button>`:''}</div>`).join('')||'<div style="color:var(--muted);text-align:center;padding:20px">No callbacks</div>'}
+      </div>
+    </div>`;
+    document.getElementById('modalBody').innerHTML=body;
+    document.getElementById('leadModal').classList.add('open');
+    window._curLead=l.lead_id;
+  }catch(e){showToast('Error: '+e.message,'error');}
+}
+
+function showLeadTab(n){
+  ['calls','notes','callbacks'].forEach(t=>{
+    document.getElementById('lead-tab-'+t).style.display=t===n?'block':'none';
+    document.getElementById('ltab-'+t+'-btn').classList.toggle('active',t===n);
+  });
+}
+
+async function updateStatus(lid){
+  const s=document.getElementById('leadStatusSel').value;
+  await apiFetch(`/api/lead/${lid}/meta`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_status:s})});
+  showToast('Status updated ✅');loadLeads();loadStats();
+}
+
+async function updateTags(lid){
+  const raw=document.getElementById('leadTagsInput').value;
+  const tags=raw.split(',').map(t=>t.trim()).filter(Boolean);
+  await apiFetch(`/api/lead/${lid}/meta`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags})});
+  showToast('Tags saved ✅');loadLeads();
+}
+
+async function saveNote(lid){
+  const text=document.getElementById('newNoteText').value.trim();
+  if(!text){showToast('Enter a note','error');return;}
+  await apiFetch('/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_id:lid,note_text:text})});
+  showToast('Note saved ✅');openLead(lid);
+}
+
+async function delNote(nid,lid){
+  if(!confirm('Delete this note?'))return;
+  await apiFetch(`/api/notes/${nid}`,{method:'DELETE'});
+  showToast('Deleted');openLead(lid);
+}
+
+async function saveCb(lid){
+  const d=document.getElementById('newCbDate').value;
+  if(!d){showToast('Pick a date','error');return;}
+  await apiFetch('/api/callbacks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_id:lid,scheduled_date:d,scheduled_time:document.getElementById('newCbTime').value,reason:document.getElementById('newCbReason').value})});
+  showToast('Callback scheduled ✅');openLead(lid);loadStats();
+}
+
+async function markDone(cid,lid){
+  await apiFetch(`/api/callbacks/${cid}/done`,{method:'PATCH'});
+  showToast('Done ✅');if(lid)openLead(lid);loadStats();
+}
+
+// ── Agents ────────────────────────────────────────────────────────────────────
+async function loadAgents(){
+  try{
+    const data=await apiFetch('/api/agents');
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('agentCards').innerHTML=data.agents.map((a,i)=>{
+      const callsPct=a.calls_pct;
+      const compPct=a.comp_pct;
+      return`<div class="agent-card">
+        <div class="agent-top">
+          <div class="agent-ava">${a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div><div class="agent-name-text">${medals[i]||''} ${a.name}</div><div style="font-size:0.72rem;color:var(--muted)">${a.unique_leads} leads</div></div>
+        </div>
+        <div class="agent-stat-row"><span class="label">Total Calls</span><span class="value">${a.total_calls}</span></div>
+        <div class="agent-stat-row"><span class="label">Completed</span><span class="value" style="color:var(--green)">${a.completed}</span></div>
+        <div class="agent-stat-row"><span class="label">Connect Rate</span><span class="value" style="color:${a.connect_rate>50?'var(--green)':'var(--warm)'}">${a.connect_rate}%</span></div>
+        <div class="agent-stat-row"><span class="label">🔥/🌡️/❄️</span><span class="value">${a.hot_leads}/${a.warm_leads}/${a.cold_leads}</span></div>
+        <div class="agent-stat-row"><span class="label">Converted</span><span class="value" style="color:var(--green)">${a.converted}</span></div>
+        <div class="agent-stat-row"><span class="label">Avg Score</span><span class="value">${a.avg_score}/100</span></div>
+        ${callsPct!==null?`<div class="target-bar">
+          <div class="target-label">Calls Target (${a.completed}/${a.target_calls})</div>
+          <div class="target-track"><div class="target-fill ${callsPct>=100?'over':''}" style="width:${Math.min(callsPct,100)}%"></div></div>
+          <div class="target-pct" style="color:${callsPct>=100?'var(--green)':'var(--muted)'}">${callsPct}%${callsPct>=100?' ✅':''}</div>
+        </div>`:''}
+        ${compPct!==null?`<div class="target-bar">
+          <div class="target-label">Completed Target (${a.completed}/${a.target_completed})</div>
+          <div class="target-track"><div class="target-fill ${compPct>=100?'over':''}" style="width:${Math.min(compPct,100)}%"></div></div>
+          <div class="target-pct" style="color:${compPct>=100?'var(--green)':'var(--muted)'}">${compPct}%${compPct>=100?' ✅':''}</div>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){showToast('Error: '+e.message,'error');}
+}
+
+// ── Targets Modal ─────────────────────────────────────────────────────────────
+async function openTargetModal(){
+  const month=new Date().toISOString().slice(0,7);
+  document.getElementById('targetMonthLabel').textContent=month;
+  const agents=await apiFetch('/api/agents');
+  const targets=await apiFetch(`/api/targets?month=${month}`);
+  const tmap={};targets.targets.forEach(t=>tmap[t.agent_name]=t);
+  document.getElementById('targetModalBody').innerHTML=`
+    <div style="margin-bottom:12px;font-size:0.83rem;color:var(--muted)">Set monthly targets for each agent. Leave 0 to not track.</div>
+    ${agents.agents.map(a=>{const t=tmap[a.name]||{};return`
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;">
+        <div style="font-weight:700;margin-bottom:10px;">${a.name}</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Target Calls</label><input class="form-input" id="tc_${a.name.replace(/ /g,'_')}" type="number" value="${t.target_calls||0}" min="0"/></div>
+          <div class="form-row"><label>Target Completed</label><input class="form-input" id="tcc_${a.name.replace(/ /g,'_')}" type="number" value="${t.target_completed||0}" min="0"/></div>
+        </div>
+      </div>`;}).join('')}
+    <button class="btn primary" onclick="saveTargets([${agents.agents.map(a=>`'${a.name}'`).join(',')}],'${month}')">💾 Save All Targets</button>
+  `;
+  document.getElementById('targetModal').classList.add('open');
+}
+
+async function saveTargets(names,month){
+  for(const name of names){
+    const k=name.replace(/ /g,'_');
+    const tc=parseInt(document.getElementById('tc_'+k).value)||0;
+    const tcc=parseInt(document.getElementById('tcc_'+k).value)||0;
+    await apiFetch('/api/targets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_name:name,month,target_calls:tc,target_completed:tcc})});
+  }
+  showToast('Targets saved ✅');closeModal('targetModal');loadAgents();
+}
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+function quickAsk(q){document.getElementById('aiInput').value=q;sendAiMessage();}
+function aiKeyDown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAiMessage();}}
+
+async function sendAiMessage(){
+  const input=document.getElementById('aiInput');
+  const q=input.value.trim();if(!q)return;
+  addMsg(q,'user');input.value='';
+  document.getElementById('aiSendBtn').disabled=true;
+  const thinkEl=addMsg('Thinking','ai thinking');
+  try{
+    const res=await fetch('/api/ai-analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    if(!res.ok){const e=await res.json();throw new Error(e.detail||'AI error');}
+    const data=await res.json();
+    thinkEl.remove();addMsg(data.answer,'ai');
+    document.getElementById('apiDot').classList.add('active');
+  }catch(err){thinkEl.remove();addMsg('❌ Error: '+err.message,'ai');}
+  document.getElementById('aiSendBtn').disabled=false;
+}
+
+function addMsg(text,cls){
+  const msgs=document.getElementById('aiMessages');
+  const div=document.createElement('div');div.className=`msg ${cls}`;div.textContent=text;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;return div;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name){
+  ['leads','agents','ai'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'block':'none';});
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['leads','agents','ai'][i]===name));
+  if(name==='agents')loadAgents();
+}
+
+document.getElementById('apiKeyInput').addEventListener('input',e=>{document.getElementById('apiDot').classList.toggle('active',e.target.value.length>10);});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+checkHealth();
+loadStats();
+loadLeads();
+setInterval(checkHealth,30000);
+setInterval(()=>{loadStats();if(document.getElementById('tab-leads').style.display!=='none')loadLeads();},60000);
+</script>
+
+<!-- AI endpoint via FastAPI -->
+<script>
+// The AI tab calls /api/ai-analyze which is served by app.py
+// Make sure app.py has the /api/ai-analyze route
+</script>
+</body>
+</html>

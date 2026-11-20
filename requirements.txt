@@ -1,0 +1,21 @@
+
+# FastAPI application
+fastapi
+uvicorn
+pydantic
+
+# Database
+mysql-connector-python
+pandas
+
+# AI / LLM integrations
+google-generativeai
+groq
+mcp
+
+# Speech transcription
+faster-whisper
+
+# Utilities
+python-dotenv
+requests
